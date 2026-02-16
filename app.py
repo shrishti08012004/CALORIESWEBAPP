@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 
 # -------------------------
-# PAGE SETTINGS
+# PAGE CONFIG
 # -------------------------
 st.set_page_config(
     page_title="Smart Calories Predictor",
@@ -18,14 +18,21 @@ st.set_page_config(
 model = pickle.load(open("model.pkl", "rb"))
 
 # -------------------------
-# TITLE
+# CUSTOM HEADER
 # -------------------------
-st.markdown(
-    "<h1 style='text-align: center; color: orange;'>🔥 Smart Calories Burnt Predictor</h1>",
-    unsafe_allow_html=True
-)
-
-st.markdown("---")
+st.markdown("""
+    <div style="
+        background: linear-gradient(90deg, #ff9966, #ff5e62);
+        padding: 20px;
+        border-radius: 15px;
+        text-align: center;
+        color: white;
+        margin-bottom: 20px;
+    ">
+        <h1>🔥 Smart Calories Burnt Predictor</h1>
+        <p>AI-powered fitness insights & calorie analytics</p>
+    </div>
+""", unsafe_allow_html=True)
 
 st.markdown("### 🏃 Enter Your Fitness Details")
 
@@ -42,8 +49,10 @@ activity = st.selectbox(
 st.markdown("---")
 
 # -------------------------
-# INPUT FIELDS
+# INPUT SECTION (CARD STYLE)
 # -------------------------
+st.markdown("### 📋 Personal Metrics")
+
 col1, col2 = st.columns(2)
 
 with col1:
@@ -59,7 +68,7 @@ with col2:
 st.markdown("---")
 
 # -------------------------
-# PREDICTION BUTTON
+# BUTTON
 # -------------------------
 if st.button("🔥 Predict Calories Burnt"):
 
@@ -74,64 +83,64 @@ if st.button("🔥 Predict Calories Burnt"):
 
         prediction = model.predict(input_data)
 
-        # Activity Adjustment
         if activity == "High":
-            prediction = prediction * 1.1
+            prediction *= 1.1
         elif activity == "Low":
-            prediction = prediction * 0.9
+            prediction *= 0.9
 
         calories_value = float(prediction[0])
 
-        st.success(f"🔥 Estimated Calories Burnt: {calories_value:.2f}")
+        # -------------------------
+        # RESULT CARD
+        # -------------------------
+        st.markdown(f"""
+            <div style="
+                background-color: #1f2933;
+                padding: 20px;
+                border-radius: 15px;
+                text-align: center;
+                color: white;
+                margin-top: 20px;
+            ">
+                <h2>🔥 Estimated Calories Burnt</h2>
+                <h1 style="color: orange;">{calories_value:.2f}</h1>
+            </div>
+        """, unsafe_allow_html=True)
 
-        st.markdown("## 📊 Analytics & Insights")
+        st.markdown("## 📊 Detailed Insights")
 
         # -------------------------
-        # METRICS DISPLAY
+        # METRICS ROW
         # -------------------------
         c1, c2, c3 = st.columns(3)
 
-        with c1:
-            st.metric("⏱ Duration", f"{duration} min")
-
-        with c2:
-            st.metric("💓 Heart Rate", f"{heart_rate} bpm")
-
-        with c3:
-            st.metric("🔥 Calories", f"{calories_value:.2f}")
+        c1.metric("⏱ Duration", f"{duration} min")
+        c2.metric("💓 Heart Rate", f"{heart_rate} bpm")
+        c3.metric("🌡 Temp", f"{body_temp} °C")
 
         st.markdown("---")
 
         # -------------------------
-        # DATAFRAME FOR CHARTS
+        # CHART DATA
         # -------------------------
         chart_df = pd.DataFrame({
-            "Values": [age, height, weight, duration, heart_rate, body_temp],
-            "Metrics": ["Age", "Height", "Weight", "Duration", "Heart Rate", "Body Temp"]
+            "Metrics": ["Age", "Height", "Weight", "Duration", "Heart Rate", "Body Temp"],
+            "Values": [age, height, weight, duration, heart_rate, body_temp]
         })
 
-        # -------------------------
-        # BAR CHART
-        # -------------------------
         st.markdown("### 📊 Input Breakdown")
         st.bar_chart(chart_df.set_index("Metrics"))
 
-        # -------------------------
-        # LINE CHART (Trend Style)
-        # -------------------------
         st.markdown("### 📈 Body Metrics Trend")
         st.line_chart(chart_df.set_index("Metrics"))
 
-        # -------------------------
-        # CALORIE COMPARISON
-        # -------------------------
         st.markdown("### 🔥 Calories Comparison")
 
         comparison_df = pd.DataFrame({
-            "Type": ["Predicted Calories", "Average Person (Reference)"],
+            "Category": ["Predicted Calories", "Reference Average"],
             "Calories": [calories_value, 250]
         })
 
-        st.bar_chart(comparison_df.set_index("Type"))
+        st.bar_chart(comparison_df.set_index("Category"))
 
         st.balloons()
