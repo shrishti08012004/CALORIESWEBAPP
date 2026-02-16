@@ -2,15 +2,14 @@ import streamlit as st
 import pickle
 import numpy as np
 import pandas as pd
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import getSampleStyleSheet
 
 # -------------------------
 # PAGE CONFIG
 # -------------------------
-st.set_page_config(
-    page_title="Smart Calories Predictor",
-    page_icon="🔥",
-    layout="centered"
-)
+st.set_page_config(page_title="Smart Calories Predictor", page_icon="🔥")
 
 # -------------------------
 # LOAD MODEL
@@ -18,7 +17,13 @@ st.set_page_config(
 model = pickle.load(open("model.pkl", "rb"))
 
 # -------------------------
-# CUSTOM HEADER
+# SESSION STATE FOR HISTORY ⭐
+# -------------------------
+if "history" not in st.session_state:
+    st.session_state.history = []
+
+# -------------------------
+# HEADER
 # -------------------------
 st.markdown("""
     <div style="
@@ -27,31 +32,19 @@ st.markdown("""
         border-radius: 15px;
         text-align: center;
         color: white;
-        margin-bottom: 20px;
     ">
         <h1>🔥 Smart Calories Burnt Predictor</h1>
-        <p>AI-powered fitness insights & calorie analytics</p>
+        <p>AI-powered fitness insights</p>
     </div>
 """, unsafe_allow_html=True)
 
 st.markdown("### 🏃 Enter Your Fitness Details")
 
 # -------------------------
-# DROPDOWNS
+# INPUTS
 # -------------------------
 gender = st.selectbox("🧑 Gender", ["Select Gender", "Male", "Female"])
-
-activity = st.selectbox(
-    "🏋 Activity Level",
-    ["Select Activity Level", "Low", "Moderate", "High"]
-)
-
-st.markdown("---")
-
-# -------------------------
-# INPUT SECTION (CARD STYLE)
-# -------------------------
-st.markdown("### 📋 Personal Metrics")
+activity = st.selectbox("🏋 Activity Level", ["Select Activity Level", "Low", "Moderate", "High"])
 
 col1, col2 = st.columns(2)
 
@@ -65,22 +58,37 @@ with col2:
     heart_rate = st.number_input("💓 Heart Rate", min_value=40)
     body_temp = st.number_input("🌡 Body Temperature", min_value=30.0)
 
-st.markdown("---")
+# -------------------------
+# PDF FUNCTION ⭐⭐⭐
+# -------------------------
+def generate_pdf(data):
+
+    doc = SimpleDocTemplate("report.pdf", pagesize=A4)
+    styles = getSampleStyleSheet()
+    elements = []
+
+    elements.append(Paragraph("Calories Burnt Prediction Report", styles['Title']))
+    elements.append(Spacer(1, 20))
+
+    for key, value in data.items():
+        elements.append(Paragraph(f"<b>{key}:</b> {value}", styles['BodyText']))
+        elements.append(Spacer(1, 10))
+
+    doc.build(elements)
 
 # -------------------------
-# BUTTON
+# PREDICTION BUTTON
 # -------------------------
 if st.button("🔥 Predict Calories Burnt"):
 
     if gender == "Select Gender":
-        st.warning("⚠ Please select your gender")
+        st.warning("⚠ Please select gender")
 
     elif activity == "Select Activity Level":
-        st.warning("⚠ Please select your activity level")
+        st.warning("⚠ Please select activity level")
 
     else:
         input_data = np.array([[age, height, weight, duration, heart_rate, body_temp]])
-
         prediction = model.predict(input_data)
 
         if activity == "High":
@@ -90,57 +98,56 @@ if st.button("🔥 Predict Calories Burnt"):
 
         calories_value = float(prediction[0])
 
-        # -------------------------
-        # RESULT CARD
-        # -------------------------
-        st.markdown(f"""
-            <div style="
-                background-color: #1f2933;
-                padding: 20px;
-                border-radius: 15px;
-                text-align: center;
-                color: white;
-                margin-top: 20px;
-            ">
-                <h2>🔥 Estimated Calories Burnt</h2>
-                <h1 style="color: orange;">{calories_value:.2f}</h1>
-            </div>
-        """, unsafe_allow_html=True)
-
-        st.markdown("## 📊 Detailed Insights")
+        st.success(f"🔥 Estimated Calories Burnt: {calories_value:.2f}")
 
         # -------------------------
-        # METRICS ROW
+        # SAVE TO HISTORY ⭐
         # -------------------------
-        c1, c2, c3 = st.columns(3)
+        record = {
+            "Age": age,
+            "Height": height,
+            "Weight": weight,
+            "Duration": duration,
+            "Heart Rate": heart_rate,
+            "Body Temp": body_temp,
+            "Calories": round(calories_value, 2)
+        }
 
-        c1.metric("⏱ Duration", f"{duration} min")
-        c2.metric("💓 Heart Rate", f"{heart_rate} bpm")
-        c3.metric("🌡 Temp", f"{body_temp} °C")
-
-        st.markdown("---")
+        st.session_state.history.append(record)
 
         # -------------------------
-        # CHART DATA
+        # CHARTS
         # -------------------------
         chart_df = pd.DataFrame({
             "Metrics": ["Age", "Height", "Weight", "Duration", "Heart Rate", "Body Temp"],
             "Values": [age, height, weight, duration, heart_rate, body_temp]
         })
 
-        st.markdown("### 📊 Input Breakdown")
         st.bar_chart(chart_df.set_index("Metrics"))
 
-        st.markdown("### 📈 Body Metrics Trend")
-        st.line_chart(chart_df.set_index("Metrics"))
+        # -------------------------
+        # PDF GENERATION ⭐⭐⭐
+        # -------------------------
+        generate_pdf(record)
 
-        st.markdown("### 🔥 Calories Comparison")
-
-        comparison_df = pd.DataFrame({
-            "Category": ["Predicted Calories", "Reference Average"],
-            "Calories": [calories_value, 250]
-        })
-
-        st.bar_chart(comparison_df.set_index("Category"))
+        with open("report.pdf", "rb") as file:
+            st.download_button(
+                label="📄 Download Report PDF",
+                data=file,
+                file_name="Calories_Report.pdf",
+                mime="application/pdf"
+            )
 
         st.balloons()
+
+# -------------------------
+# DISPLAY HISTORY ⭐⭐⭐
+# -------------------------
+st.markdown("## 📜 Prediction History")
+
+if len(st.session_state.history) == 0:
+    st.write("No predictions yet")
+
+else:
+    history_df = pd.DataFrame(st.session_state.history)
+    st.dataframe(history_df)
