@@ -3,40 +3,25 @@ from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 import pickle
 
-# -----------------------------
-# STEP A — Create Dummy Dataset
-# -----------------------------
+# ✅ Load datasets
+exercise_df = pd.read_csv("exercise.csv")
+calories_df = pd.read_csv("calories.csv")
 
-data = {
-    "age": [20, 25, 30, 35, 40],
-    "height": [160, 165, 170, 175, 180],
-    "weight": [55, 65, 70, 75, 85],
-    "duration": [30, 45, 60, 40, 50],
-    "heart_rate": [90, 110, 130, 100, 120],
-    "body_temp": [36.5, 37.0, 37.5, 36.8, 37.2],
-    "calories": [120, 250, 400, 220, 330]
-}
+# ✅ Combine datasets (VERY IMPORTANT)
+df = pd.concat([exercise_df, calories_df["Calories"]], axis=1)
 
-df = pd.DataFrame(data)
+# ✅ Select features
+X = df[["Age", "Height", "Weight", "Duration", "Heart_Rate", "Body_Temp"]]
+y = df["Calories"]
 
-# -----------------------------
-# STEP B — Split Data
-# -----------------------------
+# ✅ Split data
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
 
-X = df.drop("calories", axis=1)
-y = df["calories"]
-
-# -----------------------------
-# STEP C — Train Model
-# -----------------------------
-
+# ✅ Train model
 model = LinearRegression()
-model.fit(X, y)
+model.fit(X_train, y_train)
 
-# -----------------------------
-# STEP D — Save Model
-# -----------------------------
-
+# ✅ Save model
 pickle.dump(model, open("model.pkl", "wb"))
 
-print("✅ Model trained and saved successfully!")
+print("✅ Real dataset model trained successfully!")
